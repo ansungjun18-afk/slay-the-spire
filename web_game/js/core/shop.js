@@ -102,6 +102,7 @@ function buyShopItem(index) {
   if(game.player.gold < item.price) { alert("골드가 부족합니다!"); return; }
   
   game.player.gold -= item.price;
+  if (typeof updateUI === 'function') updateUI();
   item.purchased = true;
   
   if(item.type === 'card') {
@@ -109,6 +110,7 @@ function buyShopItem(index) {
   } else if(item.type === 'relic') {
     game.player.relics.push(item.id);
     if(DB_RELICS[item.id].onBuy) DB_RELICS[item.id].onBuy();
+    if (typeof updateRelicsUI === 'function') updateRelicsUI();
   } else if(item.type === 'potion') {
     game.player.potions.push(item.id);
     updatePotionUI();

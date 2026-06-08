@@ -14,6 +14,25 @@ function updateUI() {
   let floor = document.getElementById('top-floor'); if(floor) floor.innerText = game.map.floor + 1;
   
   if(document.getElementById('battle-screen').classList.contains('active')) updateBattleUI();
+  // Ensure relics UI is updated whenever general UI updates
+  if (typeof updateRelicsUI === 'function') updateRelicsUI();
+}
+
+function updateRelicsUI() {
+  const c = document.getElementById('relics-container');
+  if(!c) return;
+  c.innerHTML = '';
+  if(!game.player || !Array.isArray(game.player.relics)) return;
+  game.player.relics.forEach(id => {
+    const def = DB_RELICS[id] || { name: id, desc: '' };
+    const el = document.createElement('div');
+    el.className = 'relic-item';
+    // Show a short label (first letter(s)) as icon fallback
+    el.innerText = def.name ? def.name[0] : id[0];
+    if(def.desc) el.setAttribute('data-desc', def.name + ': ' + def.desc);
+    else el.setAttribute('data-desc', def.name);
+    c.appendChild(el);
+  });
 }
 
 function renderMap() {
