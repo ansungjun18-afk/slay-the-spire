@@ -22,6 +22,17 @@ function updateRelicsUI() {
   const c = document.getElementById('relics-container');
   if(!c) return;
   c.innerHTML = '';
+  // ensure parent wrapper has positioning context
+  if (!c.parentElement.classList.contains('relics-wrap')) {
+    c.parentElement.classList.add('relics-wrap');
+  }
+  // create a single tooltip element under the relics container
+  let tip = document.getElementById('relics-tooltip');
+  if(!tip) {
+    tip = document.createElement('div');
+    tip.id = 'relics-tooltip';
+    c.parentElement.appendChild(tip);
+  }
   if(!game.player || !Array.isArray(game.player.relics)) return;
   game.player.relics.forEach(id => {
     const def = DB_RELICS[id] || { name: id, desc: '' };
@@ -36,8 +47,27 @@ function updateRelicsUI() {
     } else {
       el.innerText = def.name ? def.name[0] : id[0];
     }
-    if(def.desc) el.setAttribute('data-desc', def.name + ': ' + def.desc);
-    else el.setAttribute('data-desc', def.name);
+    const desc = def.desc ? (def.name + ': ' + def.desc) : def.name;
+    el.setAttribute('data-desc', desc);
+
+    // mouse handlers to show single tooltip below the relics bar
+    el.addEventListener('mouseenter', (ev) => {
+      tip.innerText = desc;
+      tip.classList.add('show');
+      // position tooltip centered on the relic, but clamped inside container
+      requestAnimationFrame(() => {
+        const contRect = c.getBoundingClientRect();
+        const itemRect = el.getBoundingClientRect();
+        const tipRect = tip.getBoundingClientRect();
+        const desiredLeft = (itemRect.left + itemRect.right) / 2 - contRect.left - (tipRect.width / 2);
+        let left = Math.max(4, desiredLeft);
+        const maxLeft = contRect.width - tipRect.width - 4;
+        if(left > maxLeft) left = Math.max(4, maxLeft);
+        tip.style.left = left + 'px';
+      });
+    });
+    el.addEventListener('mouseleave', () => { tip.classList.remove('show'); });
+
     c.appendChild(el);
   });
 }
