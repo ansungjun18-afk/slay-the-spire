@@ -1,0 +1,40 @@
+# Slay the Spire 2: Necrobinder Overhaul Plan
+
+This document outlines the architectural changes required to accurately implement the Necrobinder class based on the detailed Slay the Spire 2 specifications.
+
+## Proposed Changes
+
+### 1. Osty (골골이) Mechanics Redesign
+- **Damage Priority**: Enemy attacks will now subtract from `Player Block` -> `Osty HP` -> `Player HP`.
+- **Osty's Death & Revive**: If Osty's HP reaches 0, Osty dies. Osty-dependent attack cards become unplayable.
+- **Relic - Forgotten Pact**: Revives Osty at the start of the player's next turn with 1 HP.
+- **Summon (소환) Keyword**: Increases Osty's Max HP and Current HP. If Osty is dead, gaining Summon instantly revives Osty with HP equal to the Summon amount.
+- **Independent Damage**: Cards that state "Osty deals damage" will ignore the Player's Strength and Weak debuffs.
+
+### 2. Soul (영혼) Card Implementation
+- **From Integer to Card**: 'Soul' will be removed as an integer resource and implemented as a 0-cost Token Card.
+- **Effect**: Cost 0, "Draw 1 card. Exhaust."
+- **Card Generation**: Cards like 'Reave (강탈)' will insert Soul cards into the Draw Pile or Hand.
+
+### 3. Doom (종말) System
+- **Mechanic**: Added as an enemy debuff. At the *end of the enemy's turn*, if their Doom stack is greater than or equal to their Current HP, they are instantly killed.
+- **Bypass Defenses**: Doom ignores Block and Intangible.
+
+### 4. Keywords (Volatile & Retain)
+- **Volatile (휘발성)**: Cards with this keyword are Exhausted at the end of the turn if left in the hand.
+- **Retain (보존)**: Cards with this keyword are not discarded at the end of the player's turn.
+
+### 5. Necrobinder Card Library Expansion
+- **Starting Deck Update**: 5x Strike (타격), 5x Defend (수비), 1x Unleash (풀어놓기), 1x Bodyguard (호위).
+- **Extensive Card Pool**: Addition of key Necrobinder cards from the lore document to the reward pool (e.g., Poke, Defile, Grave Warden, Parse, Friendship, Eradicate, Scythe of Death).
+
+## User Review Required
+
+> [!IMPORTANT]
+> The document provided contains over 40 Necrobinder cards. To keep the MVP manageable and performant within a single HTML file, I will implement the **Starting Deck + ~15 highly representative cards** (covering Summons, Souls, Doom, Volatile, and high-cost synergies). Is this acceptable, or do you strictly require all 40+ cards to be hardcoded?
+
+## Verification Plan
+1. Start a game as Necrobinder and verify Osty tanks damage properly after block.
+2. Confirm Osty dies at 0 HP, disables Osty-cards, and revives next turn.
+3. Verify 'Soul' cards are added to piles and successfully draw cards.
+4. Verify 'Doom' correctly instantly kills an enemy at the end of their turn if the threshold is met.

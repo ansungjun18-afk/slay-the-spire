@@ -1,0 +1,76 @@
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1e1e24; color: #f1f1f1; margin: 0; padding: 0; user-select: none; }
+.screen { display: none; width: 100%; height: 100vh; flex-direction: column; align-items: center; justify-content: center; position: relative; box-sizing: border-box; }
+.active { display: flex; }
+
+/* Top Navigation Bar */
+.top-bar { position: absolute; top: 0; left: 0; width: 100%; background: #111; padding: 10px 20px; display: flex; gap: 30px; font-size: 1.2em; border-bottom: 2px solid #444; box-sizing: border-box; z-index: 100;}
+.top-bar span { color: #ffd700; font-weight: bold; }
+
+/* Shared Components */
+.btn { padding: 12px 24px; font-size: 1.2em; background: #ffd700; color: #111; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: 0.2s; }
+.btn:hover { background: #ffea77; }
+.btn:disabled { background: #555; color: #888; cursor: not-allowed; }
+.panel { background: #2a2a2a; padding: 30px; border-radius: 10px; border: 2px solid #555; width: 60%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.panel h2 { color: #ffd700; margin-top: 0; font-size: 2em; }
+
+/* Map Screen */
+.map-container { display: flex; flex-direction: column; overflow-y: auto; height: 75vh; padding: 100px 20px; background: #bba482; border-radius: 10px; width: 80%; align-items: center; margin-top: 40px; border: 3px solid #8c7355; box-shadow: inset 0 0 50px rgba(0,0,0,0.3);}
+.map-floor { display: grid; grid-template-columns: repeat(6, 1fr); position: relative; width: 90%; min-height: 55px; align-items: center; justify-items: center; }
+.map-node { width: 55px; height: 55px; border-radius: 50%; background: #967d60; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 3px solid #3e2e21; font-size: 1.5em; transition: 0.2s; z-index: 2; position: relative; color: #fff;}
+.map-node:hover:not(.disabled) { transform: scale(1.2); background: #b0916c; border-color: #111;}
+.map-node.disabled { opacity: 1; cursor: not-allowed; filter: grayscale(60%); }
+.map-node.current { border: 4px solid #111; box-shadow: 0 0 0 5px rgba(0,0,0,0.5); background: #3e2e21; }
+.map-node.visited::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 26px; height: 26px; border-radius: 50%; background: #ffd700; box-shadow: 0 0 18px #ffd700; z-index: 0; }
+.floor-label { position: absolute; left: -8%; top: 50%; transform: translateY(-50%); color: #6a533c; font-weight: bold; font-size: 1.2em; }
+
+/* Battle Screen */
+.battle-area { display: flex; width: 95%; justify-content: space-between; align-items: flex-end; height: 350px; margin-top: 60px;}
+.character-box { width: 260px; background: #2c2c34; padding: 20px; border-radius: 10px; border: 2px solid #555; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.5);}
+.char-title { font-size: 1.3em; font-weight: bold; color: #fff; margin-bottom: 10px; text-align: center; }
+.hp-bar-bg { background: #500; height: 18px; border-radius: 9px; overflow: hidden; margin-top: 8px; border: 1px solid #222;}
+.hp-bar-fill { background: #f44; height: 100%; transition: width 0.3s; }
+.block-icon { position: absolute; top: -20px; left: -20px; background: #44aaff; color: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.4em; border: 3px solid #111; box-shadow: 0 0 10px #44aaff;}
+.intent-icon { position: absolute; top: -50px; left: 50%; transform: translateX(-50%); font-size: 1.3em; white-space: nowrap; color: #ff6666; font-weight: bold; background: #111; padding: 5px 10px; border-radius: 8px; border: 1px solid #ff6666;}
+.intent-icon { display:flex; align-items:center; gap:8px; padding:6px 10px; background: rgba(17,17,17,0.85); border-radius: 10px; border: 1px solid rgba(255,102,102,0.9); color: #ffdede; }
+.intent-badge { background: linear-gradient(180deg,#ff6666,#ff3333); color: #fff; font-weight: 900; padding:6px 10px; border-radius: 999px; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; box-shadow: 0 6px 18px rgba(255,50,50,0.25); font-size:1.05em; }
+.intent-desc { font-size:0.85em; color:#fff; opacity:0.95; }
+.intent-damage { display:flex; align-items:center; gap:8px; }
+.intent-damage .sword { font-size:1.15em; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.45)); }
+.intent-damage .val { font-weight:900; color:#ffd700; text-shadow: 0 2px 6px rgba(0,0,0,0.6); font-size:1.05em; }
+.intent-block { display:flex; align-items:center; gap:8px; margin-left:6px; }
+.intent-block .shield { font-size:1.05em; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.45)); }
+.intent-block .val { font-weight:900; color:#a8f0ff; text-shadow: 0 2px 6px rgba(0,0,0,0.6); font-size:1.05em; }
+.buffs-container { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; min-height: 24px;}
+.buff-badge { background: #444; font-size: 0.85em; padding: 3px 8px; border-radius: 4px; border: 1px solid #666; }
+.summon-box { width: 260px; background: #1a3c34; padding: 15px; border-radius: 10px; border: 2px solid #4fa; margin-top: 15px; position: relative;}
+
+/* Cards */
+.hand-area { display: flex; gap: 15px; height: 220px; justify-content: center; align-items: flex-end; width: 100%; margin-top: 20px;}
+.card { width: 140px; height: 200px; background: linear-gradient(145deg, #3a3a44, #2a2a34); border: 2px solid #777; border-radius: 10px; padding: 0; position: relative; cursor: pointer; transition: transform 0.2s, border-color 0.2s; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; box-shadow: 0 5px 10px rgba(0,0,0,0.5);}
+.card:hover { transform: translateY(-30px); border-color: #ffd700; z-index: 10; box-shadow: 0 15px 20px rgba(0,0,0,0.7);}
+.card.unplayable { filter: grayscale(1) brightness(0.7); cursor: not-allowed; pointer-events: none; }
+.card-cost { position: absolute; top: -15px; left: -15px; width: 35px; height: 35px; background: #44aaff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2em; border: 2px solid #111; box-shadow: 0 2px 5px rgba(0,0,0,0.5);}
+.card-name { text-align: center; font-weight: bold; color: #ffd700; font-size: 1.1em; margin-top: 15px;}
+.card-desc { font-size: 0.85em; text-align: center; color: #ccc; line-height: 1.4;}
+.card-img { width: 100%; height: 100%; object-fit: contain; border-radius: 0; margin: 0; display: block; }
+
+/* Controls */
+.controls-area { display: flex; width: 90%; justify-content: space-between; align-items: center; margin-top: 20px; background: #111; padding: 15px; border-radius: 10px; border: 1px solid #333;}
+.pile-info { font-size: 1.2em; font-weight: bold; color: #aaa;}
+
+/* Logs */
+.log-box { width: 90%; height: 100px; overflow-y: auto; background: #111; border: 1px solid #333; padding: 10px; font-size: 0.9em; margin-top: 15px; border-radius: 5px; color: #888;}
+.log-box div { margin-bottom: 4px; }
+
+/* Events */
+.options { display: flex; flex-direction: column; gap: 15px; margin-top: 30px; }
+.option-btn { background: #333; color: #fff; padding: 15px 20px; border: 2px solid #555; border-radius: 8px; cursor: pointer; text-align: left; font-size: 1.1em; transition: 0.2s;}
+.option-btn:hover { background: #444; border-color: #ffd700; transform: translateX(10px);}
+
+/* Shop Items */
+.shop-item-box { border: 2px solid #555; border-radius: 8px; padding: 15px; background: #333; display: flex; flex-direction: column; align-items: center; width: 140px; cursor: pointer; position: relative; transition: 0.2s;}
+.shop-item-box:hover { border-color: #ffd700; transform: scale(1.05); }
+.shop-item-box.purchased { filter: grayscale(1) opacity(0.3); pointer-events: none; }
+.shop-price-tag { background: #111; color: #ffd700; font-weight: bold; padding: 5px 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #ffd700;}
+.sale-badge { position: absolute; top: -10px; right: -10px; background: #f33; color: #fff; font-weight: bold; padding: 5px; border-radius: 5px; font-size: 0.8em; z-index: 5;}
+.battle-potions { position: absolute; top: 50px; left: 20px; display: flex; gap: 10px; z-index: 90; }

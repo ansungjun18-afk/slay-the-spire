@@ -1,0 +1,11 @@
+# Shop System Tasks
+
+- [x] Add `rarity` property to existing cards in `DB_CARDS`.
+- [x] Implement `DB_RELICS` and basic combat hooks.
+- [x] Implement `DB_POTIONS` and basic potion use logic.
+- [x] Add colorless cards (`swift_strike`, `apotheosis`) to `DB_CARDS`.
+- [x] Build the `visitShop()` generation logic (7 cards, 3 relics, 3 potions) with precise pricing and 1 sale item.
+- [x] Create `#shop-screen` UI layout (Cards row, Relics row, Potions row, Remove Service).
+- [x] Implement Purchase logic (deduct gold, add to deck/relics/potions, remove from shop).
+- [x] Implement Card Removal service logic (cost scales by 25g).
+- [x] Hook `visitShop()` into the Map Node `Shop` click event.

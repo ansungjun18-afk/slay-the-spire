@@ -1,0 +1,65 @@
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1e1e24; color: #f1f1f1; margin: 0; padding: 0; user-select: none; }
+.screen { display: none; width: 100%; height: 100vh; flex-direction: column; align-items: center; justify-content: center; position: relative; box-sizing: border-box; }
+.active { display: flex; }
+
+/* Top Navigation Bar */
+.top-bar { position: absolute; top: 0; left: 0; width: 100%; background: #111; padding: 10px 20px; display: flex; gap: 30px; font-size: 1.2em; border-bottom: 2px solid #444; box-sizing: border-box; z-index: 100;}
+.top-bar span { color: #ffd700; font-weight: bold; }
+
+/* Shared Components */
+.btn { padding: 12px 24px; font-size: 1.2em; background: #ffd700; color: #111; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: 0.2s; }
+.btn:hover { background: #ffea77; }
+.btn:disabled { background: #555; color: #888; cursor: not-allowed; }
+.panel { background: #2a2a2a; padding: 30px; border-radius: 10px; border: 2px solid #555; width: 60%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.panel h2 { color: #ffd700; margin-top: 0; font-size: 2em; }
+
+/* Map Screen */
+.map-container { display: flex; flex-direction: column-reverse; gap: 40px; overflow-y: auto; height: 75vh; padding: 40px 20px; background: #222; border-radius: 10px; width: 80%; align-items: center; margin-top: 40px; border: 1px solid #444;}
+.map-floor { display: flex; gap: 60px; justify-content: center; position: relative; width: 100%; }
+.map-node { width: 55px; height: 55px; border-radius: 50%; background: #333; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #666; font-size: 1.5em; transition: 0.2s; z-index: 2;}
+.map-node:hover:not(.disabled) { transform: scale(1.2); background: #555; border-color: #ffd700;}
+.map-node.disabled { opacity: 0.2; cursor: not-allowed; }
+.map-node.current { border-color: #ffd700; box-shadow: 0 0 15px #ffd700; background: #444; }
+.floor-label { position: absolute; left: 10%; top: 50%; transform: translateY(-50%); color: #777; font-weight: bold; font-size: 1.1em; }
+
+/* Battle Screen */
+.battle-area { display: flex; width: 95%; justify-content: space-between; align-items: flex-end; height: 350px; margin-top: 60px;}
+.character-box { width: 260px; background: #2c2c34; padding: 20px; border-radius: 10px; border: 2px solid #555; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.5);}
+.char-title { font-size: 1.3em; font-weight: bold; color: #fff; margin-bottom: 10px; text-align: center; }
+.hp-bar-bg { background: #500; height: 18px; border-radius: 9px; overflow: hidden; margin-top: 8px; border: 1px solid #222;}
+.hp-bar-fill { background: #f44; height: 100%; transition: width 0.3s; }
+.block-icon { position: absolute; top: -20px; left: -20px; background: #44aaff; color: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.4em; border: 3px solid #111; box-shadow: 0 0 10px #44aaff;}
+.intent-icon { position: absolute; top: -50px; left: 50%; transform: translateX(-50%); font-size: 1.3em; white-space: nowrap; color: #ff6666; font-weight: bold; background: #111; padding: 5px 10px; border-radius: 8px; border: 1px solid #ff6666;}
+.buffs-container { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; min-height: 24px;}
+.buff-badge { background: #444; font-size: 0.85em; padding: 3px 8px; border-radius: 4px; border: 1px solid #666; }
+.summon-box { width: 260px; background: #1a3c34; padding: 15px; border-radius: 10px; border: 2px solid #4fa; margin-top: 15px; position: relative;}
+
+/* Cards */
+.hand-area { display: flex; gap: 15px; height: 220px; justify-content: center; align-items: flex-end; width: 100%; margin-top: 20px;}
+.card { width: 140px; height: 200px; background: linear-gradient(145deg, #3a3a44, #2a2a34); border: 2px solid #777; border-radius: 10px; padding: 12px; position: relative; cursor: pointer; transition: transform 0.2s, border-color 0.2s; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; box-shadow: 0 5px 10px rgba(0,0,0,0.5);}
+.card:hover { transform: translateY(-30px); border-color: #ffd700; z-index: 10; box-shadow: 0 15px 20px rgba(0,0,0,0.7);}
+.card.unplayable { filter: grayscale(1) brightness(0.7); cursor: not-allowed; pointer-events: none; }
+.card-cost { position: absolute; top: -15px; left: -15px; width: 35px; height: 35px; background: #44aaff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2em; border: 2px solid #111; box-shadow: 0 2px 5px rgba(0,0,0,0.5);}
+.card-name { text-align: center; font-weight: bold; color: #ffd700; font-size: 1.1em; margin-top: 15px;}
+.card-desc { font-size: 0.85em; text-align: center; color: #ccc; line-height: 1.4;}
+
+/* Controls */
+.controls-area { display: flex; width: 90%; justify-content: space-between; align-items: center; margin-top: 20px; background: #111; padding: 15px; border-radius: 10px; border: 1px solid #333;}
+.pile-info { font-size: 1.2em; font-weight: bold; color: #aaa;}
+
+/* Logs */
+.log-box { width: 90%; height: 100px; overflow-y: auto; background: #111; border: 1px solid #333; padding: 10px; font-size: 0.9em; margin-top: 15px; border-radius: 5px; color: #888;}
+.log-box div { margin-bottom: 4px; }
+
+/* Events */
+.options { display: flex; flex-direction: column; gap: 15px; margin-top: 30px; }
+.option-btn { background: #333; color: #fff; padding: 15px 20px; border: 2px solid #555; border-radius: 8px; cursor: pointer; text-align: left; font-size: 1.1em; transition: 0.2s;}
+.option-btn:hover { background: #444; border-color: #ffd700; transform: translateX(10px);}
+
+/* Shop Items */
+.shop-item-box { border: 2px solid #555; border-radius: 8px; padding: 15px; background: #333; display: flex; flex-direction: column; align-items: center; width: 140px; cursor: pointer; position: relative; transition: 0.2s;}
+.shop-item-box:hover { border-color: #ffd700; transform: scale(1.05); }
+.shop-item-box.purchased { filter: grayscale(1) opacity(0.3); pointer-events: none; }
+.shop-price-tag { background: #111; color: #ffd700; font-weight: bold; padding: 5px 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #ffd700;}
+.sale-badge { position: absolute; top: -10px; right: -10px; background: #f33; color: #fff; font-weight: bold; padding: 5px; border-radius: 5px; font-size: 0.8em; z-index: 5;}
+.battle-potions { position: absolute; top: 50px; left: 20px; display: flex; gap: 10px; z-index: 90; }

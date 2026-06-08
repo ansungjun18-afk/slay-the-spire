@@ -1,0 +1,25 @@
+# Slay the Spire 2 MVP: Shop System Walkthrough
+
+The **Shop System** has been fully integrated into the game engine according to the exact rules specified.
+
+## 🏪 Shop Mechanics Implemented
+- **Dynamic Shop Generation**: The `visitShop()` function dynamically builds a shop layout every time you visit a Shop node.
+- **Card Selection**: The shop reliably generates 7 cards:
+  - 2 Attacks, 2 Skills, 1 Power.
+  - 2 Colorless cards (1 Uncommon, 1 Rare) using the new `DB_CARDS` rarity tags.
+  - One random class card is marked as a **Sale Item** (20% off).
+- **Relic Section**: Generates 1 Attack Relic (Vajra), 1 Utility Relic (Anchor), and 1 Shop Relic (Waffle / Membership Card).
+- **Potion Section**: Generates 3 random potions.
+- **Card Removal Service**: Initial cost is 75 Gold. Upon use, you select a card to permanently remove from your deck, and the cost for future removals increases by 25 Gold across the run.
+- **Membership Card Logic**: Purchasing the Membership Card instantly halves the price of all items in the shop.
+
+## 🧪 Combat Enhancements
+- **Potions UI**: You can now purchase potions and use them during your combat turns. A potion bar has been added below the top navigation in the Battle Screen.
+- **Relic Integration**: New combat relics like Vajra (start with +1 Strength) and Anchor (start with +10 Block) are now hooked into the `startCombat()` logic.
+- **Dexterity System**: Block generation logic (`gainBlock`) now properly factors in Dexterity, which can be acquired via the newly added Dexterity Potion.
+
+## 🚀 How to Test
+1. Refresh your browser window.
+2. Select a character and start climbing the map.
+3. Keep an eye out for **Shop (💰)** nodes. (Unknown nodes can also occasionally give you gold to spend).
+4. Enter the shop, browse the strictly-priced items, remove a card, and exit.

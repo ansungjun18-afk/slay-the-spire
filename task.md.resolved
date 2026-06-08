@@ -1,0 +1,13 @@
+# Necrobinder Overhaul Tasks
+
+- [x] Update `takeDamage` to prioritize Player Block -> Osty HP -> Player HP.
+- [x] Implement `gainSummon` function to increase Osty HP/MaxHP and revive if dead.
+- [x] Add start-of-turn logic to revive Osty with 1 HP if dead and relic is active.
+- [x] Implement `calcOstyDamage` logic to ignore Player Strength and Weak.
+- [x] Add `Soul` card logic (0-cost Skill, draws 1, exhausts).
+- [x] Implement `Doom` mechanic (instant kill at end of enemy's turn if Doom >= HP).
+- [x] Implement `Volatile` (exhausts at end of turn if in hand) and `Retain` (does not discard at end of turn).
+- [x] Add Necrobinder starting deck (5x Strike, 5x Defend, 1x Unleash, 1x Bodyguard).
+- [x] Add 10-15 selected Necrobinder cards covering new mechanics.
+- [x] Update UI to clearly show Osty's status and Doom stacks.
+- [x] Verify combat loop with new mechanics.

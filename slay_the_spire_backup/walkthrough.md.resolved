@@ -1,0 +1,45 @@
+# Slay the Spire 2 MVP: Necrobinder Update Walkthrough
+
+The core engine has been successfully updated to fully support the complex, interconnected mechanics of the **Necrobinder** class!
+
+> [!NOTE]
+> All code changes were safely integrated into the single MVP file `roguelike.html`. You can refresh your browser window to immediately test these new mechanics.
+
+## 🛠️ Implemented Mechanics
+
+### 1. Osty (골골이) & Damage Priority
+The Summon system has been entirely overhauled. Osty now acts as a secondary health pool that absorbs damage *after* Player Block, but *before* Player HP.
+- **Damage Sequence**: Enemy Damage -> `Player Block` -> `Osty HP` -> `Player HP`
+- **Revival (Forgotten Pact)**: If Osty is destroyed, the class-specific starting relic immediately revives Osty with 1 HP at the start of your next turn.
+- **Independent Damage**: Cards that instruct Osty to attack (e.g., `쑤시기`, `풀어놓기`) bypass the player's Weak and Strength modifiers, exactly as specified.
+
+### 2. Doom (종말) Debuff
+We added the class-defining Doom debuff system.
+- Instead of ticking down like poison, Doom stacks on the enemy.
+- At the **end of the enemy's turn**, the engine checks if the Doom stack is equal to or greater than the enemy's Current HP.
+- If true, the enemy is **instantly executed**, bypassing all block and defensive buffs.
+
+### 3. Soul (영혼) & Card Economy
+- `Soul` is now implemented as a 0-cost Token Skill card.
+- When you play a card like `강탈` (Reave) or `무덤지기` (Grave Warden), it generates Soul cards and shuffles them into your Draw Pile.
+- Drawing and playing a Soul card costs 0 Energy, draws 1 card, and then Exhausts, creating a powerful delayed-draw cycle.
+
+### 4. Volatile (휘발성) & Retain (보존) Keywords
+- **Volatile**: Cards with this keyword (like `모독`, `반항`) will automatically Exhaust if they are left in your hand at the end of your turn.
+- **Retain**: Cards with this keyword (like `수확`, `척결`) will bypass the end-of-turn discard phase and stay in your hand.
+
+## 🎴 New Necrobinder Card Library
+The `DB_CARDS` has been greatly expanded to include the most iconic Necrobinder cards:
+- **Starters**: `타격` (Strike), `수비` (Defend), `풀어놓기` (Unleash), `호위` (Bodyguard)
+- **Attacks**: `쑤시기` (Poke), `강탈` (Reave), `모독` (Defile), `무덤 폭발` (Graveblast), `역병 타격` (Blight Strike), `수확` (Reap)
+- **Skills**: `무덤지기` (Grave Warden), `반항` (Defy), `비관적인 맥박` (Negative Pulse), `징벌` (Scourge)
+- **Rares/Powers**: `척결` (Eradicate - *Full X-Cost support!*), `사신의 낫` (The Scythe - *Permanent scaling damage!*), `사신의 형상` (Reaper Form), `서류 폭풍` (Pagestorm), `정신 폭주` (Neurosurge)
+
+> [!TIP]
+> Try combining **서류 폭풍 (Pagestorm)** with Volatile cards like **모독 (Defile)**. The engine properly handles the nested drawing logic to replicate the explosive chain-draw turns!
+
+## 🧪 Verification
+- Start a run as **Necrobinder**.
+- Observe the new **Osty Status Panel** dynamically tracking HP and Summons.
+- Stack **Doom** on an enemy using `역병 타격` and watch them instantly die when their turn ends.
+- Use `척결` (Eradicate) to test the newly built dynamic X-cost energy consumption.

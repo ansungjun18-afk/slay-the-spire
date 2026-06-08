@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Slay the Spire 2 MVP Core Engine</title>
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1e1e24; color: #f1f1f1; margin: 0; padding: 0; user-select: none; }
+  .screen { display: none; width: 100%; height: 100vh; flex-direction: column; align-items: center; justify-content: center; position: relative; box-sizing: border-box; }
+  .active { display: flex; }
+  
+  /* Top Navigation Bar */
+  .top-bar { position: absolute; top: 0; left: 0; width: 100%; background: #111; padding: 10px 20px; display: flex; gap: 30px; font-size: 1.2em; border-bottom: 2px solid #444; box-sizing: border-box; z-index: 100;}
+  .top-bar span { color: #ffd700; font-weight: bold; }
+  
+  /* Shared Components */
+  .btn { padding: 12px 24px; font-size: 1.2em; background: #ffd700; color: #111; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: 0.2s; }
+  .btn:hover { background: #ffea77; }
+  .btn:disabled { background: #555; color: #888; cursor: not-allowed; }
+  .panel { background: #2a2a2a; padding: 30px; border-radius: 10px; border: 2px solid #555; width: 60%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  .panel h2 { color: #ffd700; margin-top: 0; font-size: 2em; }
+  
+  /* Map Screen */
+  .map-container { display: flex; flex-direction: column-reverse; gap: 40px; overflow-y: auto; height: 75vh; padding: 40px 20px; background: #222; border-radius: 10px; width: 80%; align-items: center; margin-top: 40px; border: 1px solid #444;}
+  .map-floor { display: flex; gap: 60px; justify-content: center; position: relative; width: 100%; }
+  .map-node { width: 55px; height: 55px; border-radius: 50%; background: #333; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #666; font-size: 1.5em; transition: 0.2s; z-index: 2;}
+  .map-node:hover:not(.disabled) { transform: scale(1.2); background: #555; border-color: #ffd700;}
+  .map-node.disabled { opacity: 0.2; cursor: not-allowed; }
+  .map-node.current { border-color: #ffd700; box-shadow: 0 0 15px #ffd700; background: #444; }
+  .floor-label { position: absolute; left: 10%; top: 50%; transform: translateY(-50%); color: #777; font-weight: bold; font-size: 1.1em; }
+
+  /* Battle Screen */
+  .battle-area { display: flex; width: 95%; justify-content: space-between; align-items: flex-end; height: 350px; margin-top: 60px;}
+  .character-box { width: 260px; background: #2c2c34; padding: 20px; border-radius: 10px; border: 2px solid #555; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.5);}
+  .char-title { font-size: 1.3em; font-weight: bold; color: #fff; margin-bottom: 10px; text-align: center; }
+  .hp-bar-bg { background: #500; height: 18px; border-radius: 9px; overflow: hidden; margin-top: 8px; border: 1px solid #222;}
+  .hp-bar-fill { background: #f44; height: 100%; transition: width 0.3s; }
+  .block-icon { position: absolute; top: -20px; left: -20px; background: #44aaff; color: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.4em; border: 3px solid #111; box-shadow: 0 0 10px #44aaff;}
+  .intent-icon { position: absolute; top: -50px; left: 50%; transform: translateX(-50%); font-size: 1.3em; white-space: nowrap; color: #ff6666; font-weight: bold; background: #111; padding: 5px 10px; border-radius: 8px; border: 1px solid #ff6666;}
+  .buffs-container { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; min-height: 24px;}
+  .buff-badge { background: #444; font-size: 0.85em; padding: 3px 8px; border-radius: 4px; border: 1px solid #666; }
+  .summon-box { width: 260px; background: #1a3c34; padding: 15px; border-radius: 10px; border: 2px solid #4fa; margin-top: 15px; position: relative;}
+  
+  /* Cards */
+  .hand-area { display: flex; gap: 15px; height: 220px; justify-content: center; align-items: flex-end; width: 100%; margin-top: 20px;}
+  .card { width: 140px; height: 200px; background: linear-gradient(145deg, #3a3a44, #2a2a34); border: 2px solid #777; border-radius: 10px; padding: 12px; position: relative; cursor: pointer; transition: transform 0.2s, border-color 0.2s; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; box-shadow: 0 5px 10px rgba(0,0,0,0.5);}
+  .card:hover { transform: translateY(-30px); border-color: #ffd700; z-index: 10; box-shadow: 0 15px 20px rgba(0,0,0,0.7);}
+  .card.unplayable { filter: grayscale(1) brightness(0.7); cursor: not-allowed; pointer-events: none; }
+  .card-cost { position: absolute; top: -15px; left: -15px; width: 35px; height: 35px; background: #44aaff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2em; border: 2px solid #111; box-shadow: 0 2px 5px rgba(0,0,0,0.5);}
+  .card-name { text-align: center; font-weight: bold; color: #ffd700; font-size: 1.1em; margin-top: 15px;}
+  .card-desc { font-size: 0.85em; text-align: center; color: #ccc; line-height: 1.4;}
+  
+  /* Controls */
+  .controls-area { display: flex; width: 90%; justify-content: space-between; align-items: center; margin-top: 20px; background: #111; padding: 15px; border-radius: 10px; border: 1px solid #333;}
+  .pile-info { font-size: 1.2em; font-weight: bold; color: #aaa;}
+  
+  /* Logs */
+  .log-box { width: 90%; height: 100px; overflow-y: auto; background: #111; border: 1px solid #333; padding: 10px; font-size: 0.9em; margin-top: 15px; border-radius: 5px; color: #888;}
+  .log-box div { margin-bottom: 4px; }
+  
+  /* Events */
+  .options { display: flex; flex-direction: column; gap: 15px; margin-top: 30px; }
+  .option-btn { background: #333; color: #fff; padding: 15px 20px; border: 2px solid #555; border-radius: 8px; cursor: pointer; text-align: left; font-size: 1.1em; transition: 0.2s;}
+  .option-btn:hover { background: #444; border-color: #ffd700; transform: translateX(10px);}
+
+  /* Shop Items */
+  .shop-item-box { border: 2px solid #555; border-radius: 8px; padding: 15px; background: #333; display: flex; flex-direction: column; align-items: center; width: 140px; cursor: pointer; position: relative; transition: 0.2s;}
+  .shop-item-box:hover { border-color: #ffd700; transform: scale(1.05); }
+  .shop-item-box.purchased { filter: grayscale(1) opacity(0.3); pointer-events: none; }
+  .shop-price-tag { background: #111; color: #ffd700; font-weight: bold; padding: 5px 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #ffd700;}
+  .sale-badge { position: absolute; top: -10px; right: -10px; background: #f33; color: #fff; font-weight: bold; padding: 5px; border-radius: 5px; font-size: 0.8em; z-index: 5;}
+  .battle-potions { position: absolute; top: 50px; left: 20px; display: flex; gap: 10px; z-index: 90; }
+</style>
+</head>
+<body>
+
+<div class="top-bar" id="top-bar" style="display: none;">
+  <div>캐릭터: <span id="top-class"></span></div>
+  <div>HP: <span id="top-hp">80/80</span></div>
+  <div>막: <span id="top-act">1</span> | 층: <span id="top-floor">1</span></div>
+  <div>골드: <span id="top-gold">99</span></div>
+</div>
+
+<div class="battle-potions" id="battle-potions"></div>
+
+<div id="class-select-screen" class="screen active">
+  <div class="panel">
+    <h2>Slay the Spire 2 MVP</h2>
+    <p style="font-size: 1.2em; margin-bottom: 30px; color: #aaa;">캐릭터를 선택하여 등반을 시작하세요.</p>
+    <div style="display:flex; gap:20px; justify-content: center;">
+      <button class="btn" onclick="startGame('Ironclad')" style="background: #ff5555; color: #fff;">아이언클래드</button>
+      <button class="btn" onclick="startGame('Necrobinder')" style="background: #55ffaa; color: #111;">네크로바인더</button>
+    </div>
+  </div>
+</div>
+
+<div id="map-screen" class="screen">
+  <h2 style="margin-top: 60px; color: #ffd700; font-size: 2em;">던전 맵</h2>
+  <div class="map-container" id="map-container"></div>
+</div>
+
+<div id="battle-screen" class="screen">
+  <div class="battle-area">
+    <div style="display:flex; flex-direction: column; gap: 15px;">
+      <div class="character-box" id="player-box">
+        <div class="block-icon" id="p-block-icon" style="display:none;"><span id="p-block">0</span></div>
+        <div class="char-title" id="p-name">플레이어</div>
+        <div style="color: #44aaff; font-weight: bold; font-size: 1.2em;">에너지: <span id="p-energy">3</span> / <span id="p-maxenergy">3</span></div>
+        <div>HP: <span id="p-hp">80</span> / <span id="p-maxhp">80</span></div>
+        <div class="hp-bar-bg"><div class="hp-fill hp-bar-fill" id="p-hp-fill"></div></div>
+        <div class="buffs-container" id="p-buffs"></div>
+      </div>
+      
+      <div class="summon-box" id="summon-area" style="display: none;">
+        <div class="char-title" style="color: #4fa; font-size: 1.2em; text-align: left;">오스트 (소환수)</div>
+        <div style="margin-top: 5px;">HP: <span id="sum-hp">10</span> / <span id="sum-maxhp">10</span></div>
+        <div class="hp-bar-bg" style="height:12px;"><div class="hp-fill hp-bar-fill" id="sum-hp-fill" style="background:#4fa;"></div></div>
+      </div>
+    </div>
+    
+    <div class="character-box" id="enemy-box">
+      <div class="intent-icon" id="e-intent">의도: ???</div>
+      <div class="block-icon" id="e-block-icon" style="display:none; right:-20px; left:auto;"><span id="e-block">0</span></div>
+      <div class="char-title" id="e-name">적 이름</div>
+      <div>HP: <span id="e-hp">50</span> / <span id="e-maxhp">50</span></div>
+      <div class="hp-bar-bg"><div class="hp-fill hp-bar-fill" id="e-hp-fill"></div></div>
+      <div class="buffs-container" id="e-buffs"></div>
+    </div>
+  </div>
+
+  <div class="controls-area">
+    <div class="pile-info">뽑을 카드: <span id="draw-count">0</span></div>
+    <button class="btn" id="end-turn-btn" onclick="endPlayerTurn()">턴 종료</button>
+    <div class="pile-info" style="display:flex; gap: 20px;">
+      <div>버린 카드: <span id="discard-count">0</span></div>
+      <div style="color: #ff5555;">소멸: <span id="exhaust-count">0</span></div>
+    </div>
+  </div>
+
+  <div class="hand-area" id="hand-container"></div>
+  <div class="log-box" id="battle-log"></div>
+</div>
+
+<div id="event-screen" class="screen">
+  <div class="panel">
+    <h2 id="event-title">이벤트 제목</h2>
+    <p id="event-desc" style="font-size: 1.2em; color: #ddd; line-height: 1.5;"></p>
+    <div class="options" id="event-options"></div>
+  </div>
+</div>
+
+<div id="reward-screen" class="screen">
+  <div class="panel" style="width: 80%;">
+    <h2>전투 보상</h2>
+    <div id="reward-content"></div>
+    <button class="btn" onclick="skipReward()" style="margin-top: 30px; background: #555; color: #fff;">건너뛰기</button>
+  </div>
+</div>
+
+<div id="rest-screen" class="screen">
+  <div class="panel">
+    <h2>휴식처</h2>
+    <p style="font-size: 1.2em; color: #aaa;">모닥불의 온기가 느껴집니다. 무엇을 하시겠습니까?</p>
+    <div class="options">
+      <button class="option-btn" onclick="restHeal()">[휴식] 최대 체력의 30%를 회복합니다.</button>
+      <button class="option-btn" onclick="restUpgrade()">[제련] 무작위 카드 1장을 강화합니다.</button>
+    </div>
+  </div>
+</div>
+
+<div id="shop-screen" class="screen">
+  <h2 style="color:#ffd700; margin-top:50px; font-size:2em;">상점</h2>
+  <div class="panel" style="width: 90%; height: 75vh; overflow-y: auto; background: #222; display:flex; flex-direction:column; gap:20px;">
+    
+    <div style="color:#aaa; font-size:1.2em; text-align:left;">상점 카드 가판대</div>
+    <div class="hand-area" id="shop-cards" style="height:auto; flex-wrap:wrap; justify-content:flex-start;"></div>
+    
+    <div style="color:#aaa; font-size:1.2em; text-align:left; margin-top:20px;">유물 및 포션</div>
+    <div style="display:flex; gap:20px; flex-wrap:wrap;" id="shop-relics-potions"></div>
+    
+    <div style="margin-top: 30px; text-align: left; display:flex; gap: 20px; align-items:center;">
+       <button class="btn" id="shop-remove-btn" onclick="buyCardRemoval()" style="background:#f55; color:#fff;">카드 제거 서비스 (75 골드)</button>
+       <button class="btn" onclick="advanceFloor()">상점 나가기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   1. State Management
+========================================================================== */
+const game = {
+  player: {
+    name: '플레이어', charClass: '',
+    hp: 80, maxHp: 80, energy: 3, maxEnergy: 3, gold: 99,
+    deck: [], hand: [], drawPile: [], discardPile: [], exhaustPile: [], relics: [], potions: [],
+    buffs: { strength: 0, dexterity: 0, vulnerable: 0, weak: 0, frail: 0, demonForm: 0, lichForm: 0, reaperForm: 0, pagestorm: 0, neurosurge: 0, doom: 0 },
+    summon: { active: false, hp: 0, maxHp: 0 }
+  },
+  enemy: null,
+  map: { act: 1, floor: 0, floors: [], currentNodeId: null },
+  battle: { turn: 1, isPlayerTurn: false },
+  eventParams: {},
+  shopParams: { removeCost: 75, items: [] }
+};
+
+function log(msg) {
+  let box = document.getElementById('battle-log');
+  if(!box) return;
+  box.innerHTML += `<div>> ${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+/* ==========================================================================
+   2. Relics & Potions Database
+========================================================================== */
+const DB_RELICS = {
+  'BurningBlood': { name: '불타는 혈액', type: 'Starter', rarity: 'Starter', priceRange: [0,0], desc: '전투 종료 시 체력을 6 회복합니다.' },
+  'ForgottenPact': { name: '잊혀진 결속', type: 'Starter', rarity: 'Starter', priceRange: [0,0], desc: '오스트와 함께 전투를 시작합니다.' },
+  'Vajra': { name: '금강저', type: 'Attack', rarity: 'Common', priceRange: [135,165], desc: '매 전투 시작 시 힘을 1 얻습니다.' },
+  'Anchor': { name: '닻', type: 'Utility', rarity: 'Common', priceRange: [135,165], desc: '매 전투 시작 시 방어도를 10 얻습니다.' },
+  'Waffle': { name: '리의 와플', type: 'Shop', rarity: 'Shop', priceRange: [135,165], desc: '최대 체력이 7 증가하고 체력을 모두 회복합니다.', onBuy: () => { game.player.maxHp+=7; game.player.hp=game.player.maxHp; } },
+  'Membership': { name: '멤버십 카드', type: 'Shop', rarity: 'Shop', priceRange: [135,165], desc: '상점의 모든 상품이 50% 할인됩니다.' }
+};
+
+const DB_POTIONS = {
+  'BlockPotion': { name: '방어 포션', rarity: 'Common', priceRange: [45,55], desc: '방어도를 12 얻습니다.', effect: () => { gainBlock(12); } },
+  'EnergyPotion': { name: '에너지 포션', rarity: 'Uncommon', priceRange: [67,82], desc: '에너지를 2 얻습니다.', effect: () => { game.player.energy += 2; } },
+  'DexPotion': { name: '민첩 포션', rarity: 'Common', priceRange: [45,55], desc: '이번 전투 동안 민첩을 2 얻습니다.', effect: () => { game.player.buffs.dexterity += 2; } }
+};
+
+/* ==========================================================================
+   3. Card Database
+========================================================================== */
+const DB_CARDS = {
+  // Ironclad
+  'strike_r': { name: '타격', cost: 1, type: 'Attack', rarity: 'Basic', play: (t, u) => attack(t, u?9:6), getDesc: u => `적에게 ${u?9:6} 데미지를 줍니다.` },
+  'defend_r': { name: '수비', cost: 1, type: 'Skill', rarity: 'Basic', play: (t, u) => gainBlock(u?8:5), getDesc: u => `방어도 ${u?8:5}을 얻습니다.` },
+  'bash': { name: '바시', cost: 2, type: 'Attack', rarity: 'Basic', play: (t, u) => { attack(t, u?10:8); applyDebuff(t, 'vulnerable', u?3:2); }, getDesc: u => `적에게 ${u?10:8} 데미지를 줍니다. 취약 ${u?3:2}턴을 부여합니다.` },
+  'reckless_charge': { name: '무모한 돌진', cost: 1, type: 'Attack', rarity: 'Common', play: (t, u) => { attack(t, u?14:10); addCardToPile('dazed', 'drawPile', u?2:1); }, getDesc: u => `적에게 ${u?14:10} 데미지를 줍니다. 뽑을 카드 더미에 부상을 ${u?2:1}장 섞어 넣습니다.` },
+  'demon_form': { name: '악마의 형태', cost: 3, type: 'Power', rarity: 'Rare', play: (t, u) => { game.player.buffs.demonForm += (u?3:2); }, getDesc: u => `매 턴 시작 시 힘을 ${u?3:2} 얻습니다.` },
+  
+  // Necrobinder
+  'strike_n': { name: '타격', cost: 1, type: 'Attack', rarity: 'Basic', play: (t, u) => attack(t, u?9:6), getDesc: u => `적에게 ${u?9:6} 데미지를 줍니다.` },
+  'defend_n': { name: '수비', cost: 1, type: 'Skill', rarity: 'Basic', play: (t, u) => gainBlock(u?8:5), getDesc: u => `방어도 ${u?8:5}을 얻습니다.` },
+  'unleash': { name: '풀어놓기', cost: 1, type: 'Attack', rarity: 'Basic', play: (t, u) => { let ostHp = game.player.summon.active ? game.player.summon.hp : 0; attackOsty(t, (u?9:6) + ostHp); }, getDesc: u => `골골이가 피해를 ${u?9:6} 줍니다. 골골이의 현재 체력만큼 피해량이 증가합니다.` },
+  'bodyguard': { name: '호위', cost: 1, type: 'Skill', rarity: 'Basic', play: (t, u) => gainSummon(u?7:5), getDesc: u => `소환 ${u?7:5}.` },
+  
+  'poke': { name: '쑤시기', cost: 0, type: 'Attack', rarity: 'Common', play: (t, u) => attackOsty(t, u?9:6), getDesc: u => `골골이가 피해를 ${u?9:6} 줍니다.` },
+  'reave': { name: '강탈', cost: 1, type: 'Attack', rarity: 'Common', play: (t, u) => { attack(t, u?11:9); addCardToPile('soul', 'drawPile', 1); }, getDesc: u => `피해를 ${u?11:9} 줍니다. 뽑을 카드 더미에 영혼을 1장 섞어 넣습니다.` },
+  'defile': { name: '모독', cost: 1, type: 'Attack', rarity: 'Common', volatile: true, play: (t, u) => attack(t, u?17:13), getDesc: u => `휘발성. 피해를 ${u?17:13} 줍니다.` },
+  'graveblast': { name: '무덤 폭발', cost: 1, type: 'Attack', rarity: 'Common', exhausts: true, play: (t, u) => { attack(t, u?6:4); if (game.player.discardPile.length > 0) { game.player.hand.push(game.player.discardPile.pop()); } }, getDesc: u => `피해를 ${u?6:4} 줍니다. 버린 카드 더미에서 카드를 1장 가져옵니다. 소멸.` },
+  'blight_strike': { name: '역병 타격', cost: 1, type: 'Attack', rarity: 'Common', play: (t, u) => { let d = attack(t, u?10:8); applyDoom(t, d); }, getDesc: u => `피해를 ${u?10:8} 줍니다. 가한 피해량만큼 종말을 부여합니다.` },
+  'reap': { name: '수확', cost: 3, type: 'Attack', rarity: 'Uncommon', retain: true, play: (t, u) => attack(t, u?33:27), getDesc: u => `보존. 피해를 ${u?33:27} 줍니다.` },
+  
+  'grave_warden': { name: '무덤지기', cost: 1, type: 'Skill', rarity: 'Common', play: (t, u) => { gainBlock(u?11:8); addCardToPile('soul', 'drawPile', 1); }, getDesc: u => `방어도를 ${u?11:8} 얻습니다. 뽑을 카드 더미에 영혼을 1장 섞어 넣습니다.` },
+  'defy': { name: '반항', cost: 1, type: 'Skill', rarity: 'Common', volatile: true, play: (t, u) => { gainBlock(u?9:6); applyDebuff(t, 'weak', 1); }, getDesc: u => `휘발성. 방어도를 ${u?9:6} 얻습니다. 약화를 1 부여합니다.` },
+  'negative_pulse': { name: '비관적인 맥박', cost: 1, type: 'Skill', rarity: 'Uncommon', play: (t, u) => { gainBlock(u?6:5); applyDoom(game.enemy, u?11:7); }, getDesc: u => `방어도를 ${u?6:5} 얻습니다. 모든 적에게 종말을 ${u?11:7} 부여합니다.` },
+  'scourge': { name: '징벌', cost: 1, type: 'Skill', rarity: 'Uncommon', play: (t, u) => { applyDoom(game.enemy, u?16:13); drawCards(u?2:1); }, getDesc: u => `종말을 ${u?16:13} 부여합니다. 카드를 ${u?2:1}장 뽑습니다.` },
+  
+  'eradicate': { name: '척결', cost: 'X', type: 'Attack', rarity: 'Rare', retain: true, play: (t, u) => { let x = game.player.energy; game.player.energy = 0; for(let i=0; i<x; i++) attack(t, u?14:11); }, getDesc: u => `보존. 모든 에너지를 소모하여 피해를 ${u?14:11}만큼 X번 줍니다.` },
+  'the_scythe': { name: '사신의 낫', cost: 2, type: 'Attack', rarity: 'Rare', exhausts: true, play: function(t, u) { attack(t, this.bonusDmg || 13); this.bonusDmg = (this.bonusDmg || 13) + (u?4:3); }, getDesc: function(u) { return `피해를 ${this.bonusDmg || 13} 줍니다. 피해량이 영구적으로 ${u?4:3} 증가합니다. 소멸.`; } },
+  'reaper_form': { name: '사신의 형상', cost: 3, type: 'Power', rarity: 'Rare', play: (t, u) => { game.player.buffs.reaperForm = 1; }, getDesc: u => `공격 카드로 피해를 줄 때마다, 동일한 만큼의 종말을 부여합니다.` },
+  'pagestorm': { name: '서류 폭풍', cost: 1, type: 'Power', rarity: 'Uncommon', play: (t, u) => { game.player.buffs.pagestorm = 1; }, getDesc: u => `휘발성 카드를 뽑을 때마다, 카드를 1장 뽑습니다.` },
+  'neurosurge': { name: '정신 폭주', cost: 0, type: 'Power', rarity: 'Rare', play: (t, u) => { game.player.energy += (u?4:3); drawCards(2); game.player.buffs.neurosurge = 1; }, getDesc: u => `에너지를 ${u?4:3} 얻고 카드를 2장 뽑습니다. 매 턴 시작 시, 자신에게 종말을 3 부여합니다.` },
+  
+  // Colorless
+  'swift_strike': { name: '신속한 타격', cost: 0, type: 'Attack', rarity: 'UncommonColorless', play: (t, u) => attack(t, u?10:7), getDesc: u => `피해를 ${u?10:7} 줍니다.` },
+  'apotheosis': { name: '신성화', cost: 2, type: 'Skill', rarity: 'RareColorless', exhausts: true, play: (t, u) => { game.player.deck.forEach(c => c.isUpgraded = true); game.player.hand.forEach(c => c.isUpgraded = true); }, getDesc: u => `이 전투 동안 덱의 모든 카드를 강화합니다. 소멸.` },
+
+  'soul': { name: '영혼', cost: 0, type: 'Skill', rarity: 'Token', exhausts: true, play: (t, u) => { drawCards(1); log('영혼이 인도를 해 카드를 뽑습니다.'); }, getDesc: u => `카드를 1장 뽑습니다. 소멸.` },
+  'dazed': { name: '부상', cost: '—', type: 'Status', rarity: 'Token', play: ()=>{}, getDesc: u => `사용 불가. 턴 종료 시 소멸합니다.`, unplayable: true, ethereal: true },
+  'doubt': { name: '의심', cost: '—', type: 'Curse', rarity: 'Token', play: ()=>{}, getDesc: u => `사용 불가. 턴 종료 시 약화 1을 얻습니다.`, unplayable: true }
+};
+
+function createCard(id) {
+  let base = DB_CARDS[id];
+  return {
+    id: id, name: base.name, cost: base.cost, type: base.type, isUpgraded: false,
+    exhausts: base.exhausts, volatile: base.volatile, retain: base.retain, ethereal: base.ethereal, unplayable: base.unplayable,
+    bonusDmg: base.id === 'the_scythe' ? 13 : 0,
+    effect: function(target) { base.play.call(this, target, this.isUpgraded); },
+    getDesc: function() { return base.getDesc.call(this, this.isUpgraded); }
+  };
+}
+
+/* ==========================================================================
+   4. Enemy Database & AI
+========================================================================== */
+const DB_ENEMIES = {
+  'jaw_worm': {
+    name: '턱벌레', maxHp: 44, type: 'Normal',
+    init: (e) => { e.hp = 44; e.turnCycle = 0; },
+    getIntent: (e) => {
+      let cycle = e.turnCycle % 3;
+      if(cycle === 0) return { type: 'Buff', desc: '방어 6, 힘 +2', action: () => { e.block += 6; e.buffs.strength += 2; log('턱벌레가 방어도를 얻고 강해집니다.'); } };
+      if(cycle === 1) return { type: 'Attack', damage: 11, desc: '공격', action: () => { attackPlayer(11); } };
+      if(cycle === 2) return { type: 'AttackDefend', damage: 7, desc: '공격 및 방어 5', action: () => { attackPlayer(7); e.block += 5; log('턱벌레가 방어도를 얻습니다.'); } };
+    }
+  },
+  'gremlin_nob': {
+    name: '귀족 괭이', maxHp: 86, type: 'Elite',
+    init: (e) => { e.hp = 86; e.turnCycle = 0; e.buffs.enrage = 0; },
+    getIntent: (e) => {
+      if(e.turnCycle === 0) return { type: 'Debuff', desc: '취약 2, 분노', action: () => { applyDebuff(game.player, 'vulnerable', 2); e.buffs.enrage = 2; log('귀족 괭이가 분노 상태에 돌입했습니다!'); } };
+      if(Math.random() < 0.5) return { type: 'Attack', damage: 14, desc: '강한 공격', action: () => { attackPlayer(14); } };
+      else return { type: 'Attack', damage: 11, desc: '공격', action: () => { attackPlayer(11); } };
+    }
+  },
+  'book_of_stabbing': {
+    name: '책의 노예', maxHp: 160, type: 'Boss',
+    init: (e) => { e.hp = 160; e.hits = 2; },
+    getIntent: (e) => {
+      let hits = e.hits;
+      return { type: 'Attack', damage: 6, hits: hits, desc: `연속 찌르기 x${hits}`, action: () => { 
+        for(let i=0; i<hits; i++) { if(game.player.hp > 0) attackPlayer(6); } 
+        e.hits++; 
+      }};
+    }
+  }
+};
+
+/* ==========================================================================
+   5. Core Mechanics (Damage, Osty, Doom, Buffs)
+========================================================================== */
+function calcDamage(baseDmg, attacker, defender) {
+  let dmg = baseDmg + (attacker.buffs.strength || 0);
+  if(defender.buffs && defender.buffs.vulnerable > 0) dmg *= 1.5;
+  if(attacker.buffs && attacker.buffs.weak > 0) dmg *= 0.75;
+  return Math.floor(Math.max(0, dmg));
+}
+
+function gainSummon(amount) {
+  let s = game.player.summon;
+  if (!s.active) {
+    s.active = true; s.maxHp = amount; s.hp = amount;
+    log(`오스트가 체력 ${amount}으로 소환/부활했습니다!`);
+  } else {
+    s.maxHp += amount; s.hp += amount;
+    log(`오스트의 소환 수치가 ${amount} 증가했습니다.`);
+  }
+}
+
+function takeDamage(target, amount) {
+  if (amount <= 0) return 0;
+  let finalDmg = amount; let blocked = 0;
+  
+  if (target === game.player) {
+    blocked = Math.min(finalDmg, target.block || 0);
+    target.block -= blocked; finalDmg -= blocked;
+    
+    let ostyBlocked = 0;
+    if (finalDmg > 0 && target.summon.active) {
+      ostyBlocked = Math.min(finalDmg, target.summon.hp);
+      target.summon.hp -= ostyBlocked; finalDmg -= ostyBlocked;
+      if (target.summon.hp <= 0) {
+        target.summon.active = false;
+        log(`오스트가 방어하다가 파괴되었습니다!`);
+      }
+    }
+    
+    target.hp -= finalDmg;
+    log(`플레이어 피격! (데미지: ${finalDmg}, 방어도흡수: ${blocked}, 골골이흡수: ${ostyBlocked})`);
+    
+    if (target.hp <= 0 && target.buffs.lichForm > 0 && target.summon.active) {
+      log(`[리치 형태] 발동! 오스트를 희생하여 부활합니다.`);
+      target.summon.active = false; target.hp = target.buffs.lichForm; target.buffs.lichForm = 0;
+      return finalDmg;
+    }
+    if (target.hp <= 0) { alert('전투 중 사망했습니다... 게임 오버!'); location.reload(); }
+  } else {
+    blocked = Math.min(finalDmg, target.block || 0);
+    target.block -= blocked; finalDmg -= blocked;
+    target.hp -= finalDmg;
+    log(`적에게 ${finalDmg} 데미지!`);
+  }
+  return finalDmg;
+}
+
+function attack(defender, baseDmg) {
+  let dmg = calcDamage(baseDmg, game.player, defender);
+  let dealt = takeDamage(defender, dmg);
+  if (game.player.buffs.reaperForm > 0 && defender === game.enemy) applyDoom(defender, dealt);
+  return dealt;
+}
+
+function attackOsty(defender, baseDmg) {
+  if (!game.player.summon.active) {
+    log(`오스트가 사망하여 공격할 수 없습니다!`); return 0;
+  }
+  let dmg = baseDmg; // Ignore Player Strength and Weak
+  if (defender.buffs && defender.buffs.vulnerable > 0) dmg *= 1.5;
+  dmg = Math.floor(dmg);
+  let dealt = takeDamage(defender, dmg);
+  if (game.player.buffs.reaperForm > 0 && defender === game.enemy) applyDoom(defender, dealt);
+  return dealt;
+}
+
+function attackPlayer(baseDmg) {
+  let dmg = calcDamage(baseDmg, game.enemy, game.player);
+  takeDamage(game.player, dmg);
+}
+
+function gainBlock(amount) {
+  let b = amount + (game.player.buffs.dexterity || 0);
+  game.player.block += Math.max(0, b);
+  log(`방어도 ${Math.max(0, b)} 획득!`);
+}
+
+function applyDebuff(target, type, amount) {
+  if(!target.buffs[type]) target.buffs[type] = 0; target.buffs[type] += amount;
+  let tName = type === 'vulnerable' ? '취약' : (type === 'weak' ? '약화' : type);
+  log(`${target.name||'대상'}에게 ${tName} ${amount} 부여!`);
+}
+
+function applyDoom(target, amount) {
+  if (!target.buffs['doom']) target.buffs['doom'] = 0; target.buffs['doom'] += amount;
+  log(`${target.name||'대상'}에게 종말 ${amount} 부여!`);
+}
+
+function checkDoomDeath(target) {
+  if (target.buffs['doom'] && target.buffs['doom'] >= target.hp) {
+    log(`[종말] 종말 스택(${target.buffs['doom']})이 체력 이상이 되어 즉사합니다!`);
+    target.hp = 0;
+    if (target === game.player && target.buffs.lichForm > 0 && target.summon.active) {
+       target.summon.active = false; target.hp = target.buffs.lichForm; target.buffs.lichForm = 0; target.buffs['doom'] = 0;
+       log(`[리치 형태] 종말로부터 부활합니다!`); return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+function addCardToPile(id, pileName, count) {
+  for(let i=0; i<count; i++) { game.player[pileName].push(createCard(id)); log(`${DB_CARDS[id].name} 카드가 추가되었습니다.`); }
+}
+
+/* ==========================================================================
+   6. Initialization & Map
+========================================================================== */
+function startGame(charClass) {
+  document.getElementById('top-bar').style.display = 'flex';
+  game.player.charClass = charClass;
+  document.getElementById('top-class').innerText = charClass;
+  
+  if(charClass === 'Ironclad') {
+    game.player.maxHp = 80; game.player.hp = 80;
+    game.player.relics.push('BurningBlood');
+    for(let i=0; i<5; i++) game.player.deck.push(createCard('strike_r'));
+    for(let i=0; i<4; i++) game.player.deck.push(createCard('defend_r'));
+    game.player.deck.push(createCard('bash'));
+    game.player.deck.push(createCard('reckless_charge'));
+    game.player.deck.push(createCard('demon_form'));
+  } else {
+    game.player.maxHp = 70; game.player.hp = 70;
+    game.player.relics.push('ForgottenPact');
+    for(let i=0; i<5; i++) game.player.deck.push(createCard('strike_n'));
+    for(let i=0; i<5; i++) game.player.deck.push(createCard('defend_n'));
+    game.player.deck.push(createCard('unleash'));
+    game.player.deck.push(createCard('bodyguard'));
+  }
+  
+  game.map.act = 1; generateActMap(); showScreen('map-screen');
+}
+
+function generateActMap() {
+  game.map.floors = [];
+  for(let f=0; f<20; f++) {
+    let row = [];
+    if(f===9) row.push({ id: `f${f}n0`, type: 'Chest', next: [] });
+    else if(f===18) row.push({ id: `f${f}n0`, type: 'Rest', next: [] });
+    else if(f===19) row.push({ id: `f${f}n0`, type: 'Boss', next: [] });
+    else {
+      let count = Math.floor(Math.random()*3)+2;
+      for(let n=0; n<count; n++) {
+        let type = 'Combat'; let r = Math.random();
+        if(f>0) {
+          if(r < 0.15) type = 'Shop';
+          else if(r < 0.3 && f>=4) type = 'Elite';
+          else if(r < 0.5) type = 'Unknown';
+        }
+        row.push({ id: `f${f}n${n}`, type: type, next: [] });
+      }
+    }
+    if(f>0) {
+      let prevRow = game.map.floors[f-1];
+      prevRow.forEach(p => {
+        let t = Math.floor(Math.random() * row.length); p.next.push(row[t].id);
+        if(row.length > 1 && Math.random()<0.3) p.next.push(row[(t+1)%row.length].id);
+      });
+    }
+    game.map.floors.push(row);
+  }
+  game.map.floor = 0; game.map.currentNodeId = null; renderMap();
+}
+
+function renderMap() {
+  let container = document.getElementById('map-container'); container.innerHTML = '';
+  let iconMap = { 'Combat': '⚔️', 'Elite': '💀', 'Shop': '💰', 'Rest': '🔥', 'Chest': '🎁', 'Unknown': '❓', 'Boss': '👹' };
+  
+  for(let f = game.map.floors.length - 1; f >= 0; f--) {
+    let rowDiv = document.createElement('div'); rowDiv.className = 'map-floor';
+    let label = document.createElement('div'); label.className = 'floor-label'; label.innerText = `층 ${f+1}`; rowDiv.appendChild(label);
+    
+    game.map.floors[f].forEach(node => {
+      let nDiv = document.createElement('div'); nDiv.className = 'map-node'; nDiv.innerText = iconMap[node.type];
+      
+      let selectable = false;
+      if(game.map.floor === f) {
+        if(f === 0) selectable = true;
+        else {
+          let curr = game.map.floors[f-1].find(x => x.id === game.map.currentNodeId);
+          if(curr && curr.next.includes(node.id)) selectable = true;
+        }
+      }
+      if(!selectable) nDiv.classList.add('disabled'); else nDiv.onclick = () => { selectMapNode(node, f); };
+      if(game.map.currentNodeId === node.id) nDiv.classList.add('current');
+      
+      rowDiv.appendChild(nDiv);
+    });
+    container.appendChild(rowDiv);
+  }
+  updateUI();
+}
+
+function selectMapNode(node, f) {
+  game.map.currentNodeId = node.id; renderMap();
+  setTimeout(() => {
+    switch(node.type) {
+      case 'Combat': case 'Elite': case 'Boss': startCombat(node.type); break;
+      case 'Chest': alert('상자에서 100 골드를 얻었습니다!'); game.player.gold += 100; advanceFloor(); break;
+      case 'Rest': showScreen('rest-screen'); break;
+      case 'Shop': openShop(); break;
+      case 'Unknown': handleUnknown(); break;
+    }
+  }, 300);
+}
+
+function advanceFloor() {
+  game.map.floor++;
+  if(game.map.floor >= 20) {
+    game.map.act++;
+    if(game.map.act > 3) { alert('3막 보스를 물리치고 최종 승리했습니다!'); location.reload(); } 
+    else { alert(`${game.map.act}막으로 넘어갑니다!`); generateActMap(); showScreen('map-screen'); }
+  } else { showScreen('map-screen'); renderMap(); }
+}
+
+/* ==========================================================================
+   7. Shop System
+========================================================================== */
+function openShop() {
+  let p = game.player;
+  game.shopParams.items = [];
+  
+  const randPrice = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+  const getCards = (type, isColorless) => {
+    let pool = Object.keys(DB_CARDS).filter(k => {
+      let c = DB_CARDS[k];
+      if(c.type === 'Status' || c.type === 'Curse' || c.rarity === 'Token' || c.rarity === 'Basic') return false;
+      if(isColorless) return c.rarity.includes('Colorless');
+      if(type && c.type !== type) return false;
+      if(p.charClass === 'Necrobinder' && k.includes('_r')) return false;
+      if(p.charClass === 'Ironclad' && k.includes('_n')) return false;
+      if(!isColorless && c.rarity.includes('Colorless')) return false;
+      return true;
+    });
+    shuffle(pool); return pool;
+  };
+
+  let attacks = getCards('Attack', false);
+  let skills = getCards('Skill', false);
+  let powers = getCards('Power', false);
+  
+  let shopCards = [attacks.pop(), attacks.pop(), skills.pop(), skills.pop(), powers.pop()];
+  let colorless = getCards(null, true);
+  let uncCol = colorless.find(k => DB_CARDS[k].rarity === 'UncommonColorless') || 'swift_strike';
+  let rareCol = colorless.find(k => DB_CARDS[k].rarity === 'RareColorless') || 'apotheosis';
+  shopCards.push(uncCol, rareCol);
+
+  let saleIndex = Math.floor(Math.random() * 5);
+  let cardItems = shopCards.map((k, i) => {
+    let r = DB_CARDS[k].rarity;
+    let price = r === 'Common' ? randPrice(45,55) :
+                r === 'Uncommon' ? randPrice(67,82) :
+                r === 'Rare' ? randPrice(135,165) :
+                r === 'UncommonColorless' ? randPrice(81,99) : randPrice(162,198);
+    let isSale = i === saleIndex;
+    if(isSale) price = Math.floor(price * 0.8);
+    if(p.relics.includes('Membership')) price = Math.floor(price * 0.5);
+    return { type: 'card', id: k, price: price, isSale: isSale, purchased: false };
+  });
+
+  let rPool = Object.keys(DB_RELICS).filter(k => !p.relics.includes(k) && DB_RELICS[k].rarity !== 'Starter');
+  let attR = rPool.find(k => DB_RELICS[k].type === 'Attack') || 'Vajra';
+  let utiR = rPool.find(k => DB_RELICS[k].type === 'Utility') || 'Anchor';
+  let shpR = rPool.find(k => DB_RELICS[k].type === 'Shop') || 'Waffle';
+  
+  let relicItems = [attR, utiR, shpR].map(k => {
+    let r = DB_RELICS[k].rarity;
+    let price = r === 'Common' ? randPrice(135,165) : r === 'Uncommon' ? randPrice(225,275) : randPrice(275,325);
+    if(r === 'Shop') price = randPrice(135,165);
+    if(p.relics.includes('Membership')) price = Math.floor(price * 0.5);
+    return { type: 'relic', id: k, price: price, purchased: false };
+  });
+
+  let pPool = Object.keys(DB_POTIONS);
+  let potionItems = [];
+  for(let i=0; i<3; i++) {
+    let k = pPool[Math.floor(Math.random() * pPool.length)];
+    let r = DB_POTIONS[k].rarity;
+    let price = r === 'Common' ? randPrice(45,55) : r === 'Uncommon' ? randPrice(67,82) : randPrice(90,110);
+    if(p.relics.includes('Membership')) price = Math.floor(price * 0.5);
+    potionItems.push({ type: 'potion', id: k, price: price, purchased: false });
+  }
+
+  game.shopParams.items = [...cardItems, ...relicItems, ...potionItems];
+  renderShop();
+  showScreen('shop-screen');
+}
+
+function renderShop() {
+  document.getElementById('shop-gold').innerText = game.player.gold;
+  
+  let cardsHtml = '';
+  let relicsHtml = '';
+  
+  game.shopParams.items.forEach((item, idx) => {
+    let pur = item.purchased ? 'purchased' : '';
+    if(item.type === 'card') {
+      let c = createCard(item.id);
+      cardsHtml += `<div class="card ${pur}" onclick="buyShopItem(${idx})" style="transform:none; cursor:pointer;">
+        ${item.isSale ? '<div class="sale-badge">SALE</div>' : ''}
+        <div class="card-cost">${c.cost}</div><div class="card-name">${c.name}</div><div class="card-desc">${c.getDesc()}</div>
+        <div class="shop-price-tag">${item.price} G</div>
+      </div>`;
+    } else if(item.type === 'relic') {
+      let r = DB_RELICS[item.id];
+      relicsHtml += `<div class="shop-item-box ${pur}" onclick="buyShopItem(${idx})">
+        <div style="font-weight:bold; color:#4fa; font-size:1.1em;">[유물] ${r.name}</div>
+        <div style="font-size:0.8em; color:#ccc; margin-top:5px; text-align:center;">${r.desc}</div>
+        <div class="shop-price-tag">${item.price} G</div>
+      </div>`;
+    } else if(item.type === 'potion') {
+      let p = DB_POTIONS[item.id];
+      relicsHtml += `<div class="shop-item-box ${pur}" onclick="buyShopItem(${idx})">
+        <div style="font-weight:bold; color:#f4f; font-size:1.1em;">[포션] ${p.name}</div>
+        <div style="font-size:0.8em; color:#ccc; margin-top:5px; text-align:center;">${p.desc}</div>
+        <div class="shop-price-tag">${item.price} G</div>
+      </div>`;
+    }
+  });
+  
+  document.getElementById('shop-cards').innerHTML = cardsHtml;
+  document.getElementById('shop-relics-potions').innerHTML = relicsHtml;
+  
+  let removeCost = game.shopParams.removeCost;
+  if(game.player.relics.includes('Membership')) removeCost = Math.floor(removeCost * 0.5);
+  document.getElementById('shop-remove-btn').innerText = `카드 제거 서비스 (${removeCost} 골드)`;
+  document.getElementById('shop-remove-btn').style.display = 'block';
+}
+
+function buyShopItem(index) {
+  let item = game.shopParams.items[index];
+  if(item.purchased) return;
+  if(game.player.gold < item.price) { alert("골드가 부족합니다!"); return; }
+  
+  game.player.gold -= item.price;
+  item.purchased = true;
+  
+  if(item.type === 'card') {
+    game.player.deck.push(createCard(item.id));
+  } else if(item.type === 'relic') {
+    game.player.relics.push(item.id);
+    if(DB_RELICS[item.id].onBuy) DB_RELICS[item.id].onBuy();
+  } else if(item.type === 'potion') {
+    game.player.potions.push(item.id);
+    updatePotionUI();
+  }
+  renderShop();
+}
+
+function buyCardRemoval() {
+  let cost = game.shopParams.removeCost;
+  if(game.player.relics.includes('Membership')) cost = Math.floor(cost * 0.5);
+  
+  if(game.player.gold < cost) { alert("골드가 부족합니다!"); return; }
+  
+  let html = '<h3 style="color:#fff;">제거할 카드를 선택하세요</h3><div class="hand-area" style="flex-wrap:wrap; height:auto; overflow-y:auto; max-height:400px; justify-content:center; gap:20px;">';
+  game.player.deck.forEach((c, idx) => {
+    html += `<div class="card" onclick="executeCardRemoval(${idx}, ${cost})" style="transform:none; cursor:pointer;">
+      <div class="card-cost">${c.cost}</div><div class="card-name">${c.name}</div><div class="card-desc">${c.getDesc()}</div>
+    </div>`;
+  });
+  html += '</div><button class="btn" onclick="renderShop()" style="margin-top:20px;">취소</button>';
+  
+  document.getElementById('shop-relics-potions').innerHTML = html;
+  document.getElementById('shop-cards').innerHTML = ''; 
+  document.getElementById('shop-remove-btn').style.display = 'none';
+}
+
+function executeCardRemoval(index, cost) {
+  game.player.gold -= cost;
+  game.shopParams.removeCost += 25; 
+  let removed = game.player.deck.splice(index, 1)[0];
+  alert(`[${removed.name}] 카드를 제거했습니다.`);
+  renderShop();
+}
+
+function updatePotionUI() {
+  let bar = document.getElementById('battle-potions');
+  if(!bar) return;
+  let html = '';
+  game.player.potions.forEach((p, idx) => {
+    html += `<button class="btn" style="padding:8px 15px; font-size:1em; background:#f4f; color:#fff;" onclick="usePotion(${idx})">${DB_POTIONS[p].name}</button> `;
+  });
+  bar.innerHTML = html;
+}
+
+function usePotion(idx) {
+  if(!document.getElementById('battle-screen').classList.contains('active')) return;
+  if(!game.battle.isPlayerTurn) { alert("내 턴에만 사용할 수 있습니다!"); return; }
+  let p = game.player.potions.splice(idx, 1)[0];
+  DB_POTIONS[p].effect();
+  log(`[${DB_POTIONS[p].name}] 사용!`);
+  updatePotionUI();
+  updateUI();
+}
+
+/* ==========================================================================
+   8. Events & Rest
+========================================================================== */
+function handleUnknown() {
+  let r = Math.random();
+  if(r < 0.2) { alert('[미지] 숨겨진 상자에서 100 골드를 획득했습니다!'); game.player.gold += 100; advanceFloor(); }
+  else if(r < 0.5) { alert('[미지] 적이 매복해 있었습니다!'); startCombat('Normal'); }
+  else { if(Math.random() < 0.5) showEventSerpent(); else showEventOoze(); }
+}
+
+function setEventContent(title, desc, options) {
+  showScreen('event-screen'); document.getElementById('event-title').innerText = title; document.getElementById('event-desc').innerText = desc;
+  let optHtml = ''; options.forEach((opt, idx) => { optHtml += `<button class="option-btn" id="evt-btn-${idx}">${opt.text}</button>`; });
+  document.getElementById('event-options').innerHTML = optHtml;
+  options.forEach((opt, idx) => { document.getElementById(`evt-btn-${idx}`).onclick = opt.action; });
+}
+
+function showEventSerpent() {
+  setEventContent('[백용의 제단]', '황금 안공을 가진 거대한 뱀이 당신의 주위를 맴돌며 속삭입니다. 금화를 줄 테니 저주를 받아들이겠는가?', [
+    { text: '동의한다 (175 골드 획득, 저주 "의심" 덱에 추가)', action: () => {
+        game.player.gold += 175; game.player.deck.push(createCard('doubt')); alert('175 골드와 "의심" 카드를 얻었습니다.'); advanceFloor();
+    }},
+    { text: '거절한다', action: () => { advanceFloor(); } }
+  ]);
+}
+
+function showEventOoze() {
+  game.eventParams.oozeChance = 25; renderOoze();
+}
+function renderOoze() {
+  setEventContent('[의문의 부적]', '녹슨 고철 더미 속에 강력한 유물이 보입니다. 손을 집어넣어 꺼내시겠습니까? 상처를 입을 수 있습니다.', [
+    { text: `손을 넣는다 (성공 확률 ${game.eventParams.oozeChance}%, 실패 시 체력 5 감소)`, action: () => {
+        if(Math.random() * 100 < game.eventParams.oozeChance) { game.player.relics.push('Vajra'); alert('유물 [금강저]를 획득했습니다!'); advanceFloor(); } 
+        else {
+          game.player.hp -= 5; alert('앗! 고철에 긁혀 5의 데미지를 입었습니다.');
+          if(game.player.hp <= 0) { alert('사망했습니다!'); location.reload(); }
+          else { game.eventParams.oozeChance += 25; renderOoze(); }
+        }
+    }},
+    { text: '떠난다', action: () => { advanceFloor(); } }
+  ]);
+}
+
+function restHeal() {
+  let heal = Math.floor(game.player.maxHp * 0.3); game.player.hp = Math.min(game.player.maxHp, game.player.hp + heal);
+  alert(`체력을 ${heal} 회복했습니다.`); advanceFloor();
+}
+function restUpgrade() {
+  let upgradable = game.player.deck.filter(c => !c.isUpgraded && c.type !== 'Curse' && c.type !== 'Status');
+  if(upgradable.length > 0) {
+    let target = upgradable[Math.floor(Math.random()*upgradable.length)];
+    target.isUpgraded = true; alert(`[${target.name}] 카드가 강화되었습니다!`);
+  } else alert('강화할 카드가 없습니다.');
+  advanceFloor();
+}
+
+/* ==========================================================================
+   9. Battle Core Loop
+========================================================================== */
+function startCombat(type) {
+  showScreen('battle-screen'); document.getElementById('battle-log').innerHTML = '';
+  
+  let p = game.player; p.energy = p.maxEnergy; p.block = 0;
+  p.buffs = { strength: 0, dexterity: 0, vulnerable: 0, weak: 0, frail: 0, demonForm: 0, lichForm: 0, doom: 0, reaperForm: 0, pagestorm: 0, neurosurge: 0 };
+  
+  if (p.relics.includes('Vajra')) p.buffs.strength += 1;
+  if (p.relics.includes('Anchor')) gainBlock(10);
+  
+  if (p.charClass === 'Necrobinder') {
+    p.summon = { active: false, hp: 0, maxHp: 0 };
+    if (p.relics.includes('ForgottenPact')) gainSummon(10);
+  }
+  
+  p.drawPile = [...p.deck]; shuffle(p.drawPile);
+  p.hand = []; p.discardPile = []; p.exhaustPile = [];
+  
+  let enemyId = 'jaw_worm';
+  if(type === 'Elite') enemyId = game.map.act === 1 ? 'gremlin_nob' : 'book_of_stabbing';
+  else if(type === 'Boss') enemyId = 'book_of_stabbing'; 
+  
+  let baseDef = DB_ENEMIES[enemyId];
+  game.enemy = { 
+    id: enemyId, name: baseDef.name, type: baseDef.type,
+    hp: baseDef.maxHp, maxHp: baseDef.maxHp, block: 0,
+    buffs: { strength: 0, vulnerable: 0, weak: 0, enrage: 0, doom: 0 },
+    turnCycle: 0, hits: baseDef.hits || 0
+  };
+  baseDef.init(game.enemy);
+  game.battle.turn = 0; 
+  updatePotionUI();
+  startPlayerTurn();
+}
+
+function startPlayerTurn() {
+  game.battle.turn++; game.battle.isPlayerTurn = true; let p = game.player;
+  
+  if(p.buffs.demonForm > 0) p.buffs.strength += p.buffs.demonForm;
+  if(p.buffs.neurosurge > 0) applyDoom(p, 3);
+  if(p.charClass === 'Necrobinder' && p.relics.includes('ForgottenPact') && !p.summon.active) {
+    p.summon.active = true; p.summon.hp = 1; p.summon.maxHp = 1; log(`잊혀진 결속: 오스트가 1의 체력으로 부활합니다!`);
+  }
+  
+  p.energy = p.maxEnergy; p.block = 0;
+  if(p.buffs.vulnerable > 0) p.buffs.vulnerable--; if(p.buffs.weak > 0) p.buffs.weak--;
+  
+  drawCards(5);
+  if(game.enemy) game.enemy.currentIntent = DB_ENEMIES[game.enemy.id].getIntent(game.enemy);
+  updateUI();
+}
+
+function drawCards(amount) {
+  let drawn = [];
+  for(let i=0; i<amount; i++) {
+    if(game.player.drawPile.length === 0) {
+      if(game.player.discardPile.length === 0) break;
+      game.player.drawPile = [...game.player.discardPile]; game.player.discardPile = []; shuffle(game.player.drawPile); log('버린 카드 더미를 섞습니다.');
+    }
+    let c = game.player.drawPile.pop(); game.player.hand.push(c); drawn.push(c);
+  }
+  drawn.forEach(c => {
+    if (game.player.buffs.pagestorm > 0 && (DB_CARDS[c.id].volatile)) {
+       log('서류 폭풍 발동! 휘발성 카드로 인해 추가 드로우!'); drawCards(1); 
+    }
+  });
+}
+
+function playCard(index) {
+  let p = game.player; let card = p.hand[index];
+  let effectiveCost = card.cost === 'X' ? 0 : (card.cost === '—' ? 99 : card.cost);
+  if(p.energy < effectiveCost) return;
+  
+  if (card.cost !== 'X') p.energy -= card.cost;
+  p.hand.splice(index, 1); log(`[${card.name}] 사용!`);
+  card.effect(game.enemy);
+  
+  if(card.type === 'Skill' && game.enemy && game.enemy.buffs.enrage > 0) {
+    game.enemy.buffs.strength += game.enemy.buffs.enrage; log(`귀족 괭이가 분노하여 힘이 ${game.enemy.buffs.enrage} 증가했습니다!`);
+  }
+  
+  let cDef = DB_CARDS[card.id];
+  if(cDef.type === 'Power' || card.exhausts || cDef.exhausts) p.exhaustPile.push(card);
+  else p.discardPile.push(card);
+  
+  updateUI(); checkCombatEnd();
+}
+
+function endPlayerTurn() {
+  game.battle.isPlayerTurn = false; updateUI(); let p = game.player;
+  if(p.hand.some(c => c.id === 'doubt')) applyDebuff(p, 'weak', 1);
+  
+  for(let i = p.hand.length - 1; i >= 0; i--) {
+    let c = p.hand[i]; let cDef = DB_CARDS[c.id];
+    if(cDef.ethereal || cDef.volatile) { p.exhaustPile.push(c); p.hand.splice(i, 1); log(`[${c.name}] 카드가 휘발/소멸되었습니다.`); }
+  }
+  for(let i = p.hand.length - 1; i >= 0; i--) {
+    let c = p.hand[i]; let cDef = DB_CARDS[c.id];
+    if(!cDef.retain) { p.discardPile.push(c); p.hand.splice(i, 1); }
+  }
+  
+  if (checkDoomDeath(game.player)) { alert("종말에 의해 사망했습니다!"); location.reload(); return; }
+  
+  updateUI(); setTimeout(startEnemyTurn, 500);
+}
+
+function startEnemyTurn() {
+  let e = game.enemy; e.block = 0;
+  if(e.buffs.vulnerable > 0) e.buffs.vulnerable--; if(e.buffs.weak > 0) e.buffs.weak--;
+  
+  log(`--- 적 턴 ---`);
+  if(e.currentIntent) e.currentIntent.action();
+  
+  if (checkDoomDeath(e)) { checkCombatEnd(); return; }
+  
+  e.turnCycle++; updateUI();
+  if(game.player.hp > 0 && e.hp > 0) setTimeout(startPlayerTurn, 800);
+}
+
+function checkCombatEnd() {
+  if (game.enemy && game.enemy.hp <= 0) {
+    log('전투 승리!');
+    if(game.player.relics.includes('BurningBlood')) {
+      game.player.hp = Math.min(game.player.maxHp, game.player.hp + 6); log('불타는 혈액: 체력을 6 회복했습니다.');
+    }
+    setTimeout(showRewardScreen, 1000);
+  }
+}
+
+function showRewardScreen() {
+  showScreen('reward-screen');
+  let goldReward = Math.floor(Math.random() * 20) + 10; game.player.gold += goldReward;
+  
+  let poolKeys = Object.keys(DB_CARDS).filter(k => {
+    let c = DB_CARDS[k];
+    if(c.type === 'Status' || c.type === 'Curse' || c.rarity === 'Token' || c.rarity === 'Basic') return false;
+    if(c.rarity.includes('Colorless')) return false;
+    if(game.player.charClass === 'Ironclad' && k.includes('_n')) return false;
+    if(game.player.charClass === 'Necrobinder' && k.includes('_r')) return false;
+    return true;
+  });
+  shuffle(poolKeys); let choices = poolKeys.slice(0, 3);
+  
+  let html = `<h3 style="color:#fff; margin-bottom: 20px;">${goldReward} 골드를 획득했습니다!</h3><div class="hand-area">`;
+  choices.forEach(k => {
+    let c = createCard(k);
+    html += `<div class="card" onclick="selectReward('${k}')">
+        <div class="card-cost">${c.cost}</div><div class="card-name">${c.name}</div><div class="card-desc">${c.getDesc()}</div>
+      </div>`;
+  });
+  html += `</div>`; document.getElementById('reward-content').innerHTML = html; updateUI();
+}
+
+function selectReward(id) { game.player.deck.push(createCard(id)); alert('카드를 덱에 추가했습니다!'); advanceFloor(); }
+function skipReward() { advanceFloor(); }
+
+/* ==========================================================================
+   10. Global UI Renderer
+========================================================================== */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active')); document.getElementById(id).classList.add('active'); updateUI();
+}
+
+function updateUI() {
+  let g = document.getElementById('top-gold'); if(g) g.innerText = game.player.gold;
+  let hp = document.getElementById('top-hp'); if(hp) hp.innerText = game.player.hp + '/' + game.player.maxHp;
+  let act = document.getElementById('top-act'); if(act) act.innerText = game.map.act;
+  let floor = document.getElementById('top-floor'); if(floor) floor.innerText = game.map.floor + 1;
+  
+  if(document.getElementById('battle-screen').classList.contains('active')) updateBattleUI();
+}
+
+function updateBattleUI() {
+  let p = game.player; let e = game.enemy;
+  
+  document.getElementById('p-energy').innerText = p.energy;
+  document.getElementById('p-maxenergy').innerText = p.maxEnergy;
+  document.getElementById('p-hp').innerText = Math.max(0, p.hp);
+  document.getElementById('p-maxhp').innerText = p.maxHp;
+  document.getElementById('p-block').innerText = p.block;
+  document.getElementById('p-block-icon').style.display = p.block > 0 ? 'flex' : 'none';
+  document.getElementById('p-hp-fill').style.width = Math.max(0, p.hp/p.maxHp*100) + '%';
+  document.getElementById('p-buffs').innerHTML = renderBuffs(p.buffs);
+  
+  if(p.charClass === 'Necrobinder' && p.summon) {
+    document.getElementById('summon-area').style.display = 'block';
+    if (p.summon.active) {
+      document.getElementById('sum-hp').innerText = p.summon.hp;
+      document.getElementById('sum-maxhp').innerText = p.summon.maxHp;
+      document.getElementById('sum-hp-fill').style.width = Math.max(0, p.summon.hp/p.summon.maxHp*100) + '%';
+      document.getElementById('sum-hp-fill').style.background = '#4fa';
+    } else {
+      document.getElementById('sum-hp').innerText = 0;
+      document.getElementById('sum-hp-fill').style.width = '0%';
+    }
+  } else { document.getElementById('summon-area').style.display = 'none'; }
+
+  if(e) {
+    document.getElementById('e-name').innerText = e.name;
+    document.getElementById('e-hp').innerText = Math.max(0, e.hp);
+    document.getElementById('e-maxhp').innerText = e.maxHp;
+    document.getElementById('e-block').innerText = e.block;
+    document.getElementById('e-block-icon').style.display = e.block > 0 ? 'flex' : 'none';
+    document.getElementById('e-hp-fill').style.width = Math.max(0, e.hp/e.maxHp*100) + '%';
+    document.getElementById('e-buffs').innerHTML = renderBuffs(e.buffs);
+    if(e.currentIntent) {
+      document.getElementById('e-intent').innerText = e.currentIntent.desc;
+    }
+  }
+  
+  let handHtml = '';
+  p.hand.forEach((c, idx) => {
+    let unplayable = DB_CARDS[c.id].unplayable || p.energy < (c.cost === '—' ? 99 : c.cost) ? 'unplayable' : '';
+    handHtml += `<div class="card ${unplayable}" onclick="${unplayable ? '' : `playCard(${idx})`}">
+        <div class="card-cost">${c.cost}</div><div class="card-name">${c.name}${c.isUpgraded?'+':''}</div><div class="card-desc">${c.getDesc()}</div>
+      </div>`;
+  });
+  document.getElementById('hand-container').innerHTML = handHtml;
+  
+  document.getElementById('draw-count').innerText = p.drawPile.length;
+  document.getElementById('discard-count').innerText = p.discardPile.length;
+  document.getElementById('exhaust-count').innerText = p.exhaustPile.length;
+  document.getElementById('end-turn-btn').disabled = !game.battle.isPlayerTurn;
+}
+
+function renderBuffs(buffs) {
+  let html = '';
+  for(let k in buffs) { if(buffs[k] > 0) {
+    let kn = k;
+    if(k==='strength') kn='힘'; else if(k==='dexterity') kn='민첩'; else if(k==='vulnerable') kn='취약'; else if(k==='weak') kn='약화';
+    else if(k==='enrage') kn='분노'; else if(k==='demonForm') kn='악마의형태'; else if(k==='lichForm') kn='리치형태';
+    else if(k==='doom') kn='<span style="color:#ff5555; font-weight:bold;">종말</span>';
+    else if(k==='pagestorm') kn='서류폭풍'; else if(k==='reaperForm') kn='사신의형상'; else if(k==='neurosurge') kn='정신폭주';
+    html += `<span class="buff-badge">${kn}: ${buffs[k]}</span>`;
+  }}
+  return html;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Slay the Spire 2 - Roguelike (Web Layout)</title>
+<link rel="stylesheet" href="web_game/css/style.css?v=4">
+</head>
+<body>
+
+<div class="top-bar" id="top-bar" style="display: none;">
+  <div>캐릭터: <span id="top-class"></span></div>
+  <div>HP: <span id="top-hp">80/80</span></div>
+  <div>막: <span id="top-act">1</span> | 층: <span id="top-floor">1</span></div>
+  <div>골드: <span id="top-gold">99</span></div>
+</div>
+
+<div class="battle-potions" id="battle-potions"></div>
+
+<div id="class-select-screen" class="screen active">
+  <div class="panel">
+    <h2>Slay the Spire 2 (Roguelike view)</h2>
+    <p style="font-size: 1.2em; margin-bottom: 30px; color: #aaa;">캐릭터를 선택하여 등반을 시작하세요.</p>
+    <div style="display:flex; gap:20px; justify-content: center;">
+      <button class="btn" onclick="startGame('Ironclad')" style="background: #ff5555; color: #fff;">아이언클래드</button>
+      <button class="btn" onclick="startGame('Necrobinder')" style="background: #55ffaa; color: #111;">네크로바인더</button>
+    </div>
+  </div>
+</div>
+
+<div id="map-screen" class="screen">
+  <h2 style="margin-top: 40px; color: #ffd700; font-size: 2em; text-align:center;">던전 맵</h2>
+  <div class="map-container" id="map-container" style="margin: 30px auto; width: 90%; height: 75vh; overflow:auto;"></div>
+</div>
+
+<div id="battle-screen" class="screen">
+  <div class="battle-area">
+    <div style="display:flex; flex-direction: column; gap: 15px;">
+      <div class="character-box" id="player-box">
+        <div class="block-icon" id="p-block-icon" style="display:none;"><span id="p-block">0</span></div>
+        <div class="char-title" id="p-name">플레이어</div>
+        <div style="color: #44aaff; font-weight: bold; font-size: 1.2em;">에너지: <span id="p-energy">3</span> / <span id="p-maxenergy">3</span></div>
+        <div>HP: <span id="p-hp">80</span> / <span id="p-maxhp">80</span></div>
+        <div class="hp-bar-bg"><div class="hp-fill hp-bar-fill" id="p-hp-fill"></div></div>
+        <div class="buffs-container" id="p-buffs"></div>
+      </div>
+      
+      <div class="summon-box" id="summon-area" style="display: none;">
+        <div class="char-title" style="color: #4fa; font-size: 1.2em; text-align: left;">오스트 (소환수)</div>
+        <div style="margin-top: 5px;">HP: <span id="sum-hp">10</span> / <span id="sum-maxhp">10</span></div>
+        <div class="hp-bar-bg" style="height:12px;"><div class="hp-fill hp-bar-fill" id="sum-hp-fill" style="background:#4fa;"></div></div>
+      </div>
+    </div>
+    
+    <div class="character-box" id="enemy-box">
+      <div class="intent-icon" id="e-intent">의도: ???</div>
+      <div class="block-icon" id="e-block-icon" style="display:none; right:-20px; left:auto;"><span id="e-block">0</span></div>
+      <div class="char-title" id="e-name">적 이름</div>
+      <div>HP: <span id="e-hp">50</span> / <span id="e-maxhp">50</span></div>
+      <div class="hp-bar-bg"><div class="hp-fill hp-bar-fill" id="e-hp-fill"></div></div>
+      <div class="buffs-container" id="e-buffs"></div>
+    </div>
+  </div>
+
+  <div class="controls-area">
+    <div class="pile-info">뽑을 카드: <span id="draw-count">0</span></div>
+    <button class="btn" id="end-turn-btn" onclick="endPlayerTurn()">턴 종료</button>
+    <div class="pile-info" style="display:flex; gap: 20px;">
+      <div>버린 카드: <span id="discard-count">0</span></div>
+      <div style="color: #ff5555;">소멸: <span id="exhaust-count">0</span></div>
+    </div>
+  </div>
+
+  <div class="hand-area" id="hand-container"></div>
+  <div class="log-box" id="battle-log"></div>
+</div>
+
+<div id="event-screen" class="screen">
+  <div class="panel">
+    <h2 id="event-title">이벤트 제목</h2>
+    <p id="event-desc" style="font-size: 1.2em; color: #ddd; line-height: 1.5;"></p>
+    <div class="options" id="event-options"></div>
+  </div>
+</div>
+
+<div id="reward-screen" class="screen">
+  <div class="panel" style="width: 80%;">
+    <h2>전투 보상</h2>
+    <div id="reward-content"></div>
+    <button class="btn" onclick="skipReward()" style="margin-top: 30px; background: #555; color: #fff;">건너뛰기</button>
+  </div>
+</div>
+
+<div id="rest-screen" class="screen">
+  <div class="panel">
+    <h2>휴식처</h2>
+    <p style="font-size: 1.2em; color: #aaa;">모닥불의 온기가 느껴집니다. 무엇을 하시겠습니까?</p>
+    <div class="options">
+      <button class="option-btn" onclick="restHeal()">[휴식] 최대 체력의 30%를 회복합니다.</button>
+      <button class="option-btn" onclick="restUpgrade()">[제련] 무작위 카드 1장을 강화합니다.</button>
+    </div>
+  </div>
+</div>
+
+<div id="shop-screen" class="screen">
+  <h2 style="color:#ffd700; margin-top:50px; font-size:2em;">상점</h2>
+  <div class="panel" style="width: 90%; height: 75vh; overflow-y: auto; background: #222; display:flex; flex-direction:column; gap:20px;">
+    
+    <div style="color:#aaa; font-size:1.2em; text-align:left;">상점 카드 가판대</div>
+    <div class="hand-area" id="shop-cards" style="height:auto; flex-wrap:wrap; justify-content:flex-start;"></div>
+    
+    <div style="color:#aaa; font-size:1.2em; text-align:left; margin-top:20px;">유물 및 포션</div>
+    <div style="display:flex; gap:20px; flex-wrap:wrap;" id="shop-relics-potions"></div>
+    
+    <div style="margin-top: 30px; text-align: left; display:flex; gap: 20px; align-items:center;">
+       <button class="btn" id="shop-remove-btn" onclick="buyCardRemoval()" style="background:#f55; color:#fff;">카드 제거 서비스 (75 골드)</button>
+       <button class="btn" onclick="advanceFloor()">상점 나가기</button>
+    </div>
+  </div>
+</div>
+
+<!-- Load Scripts in dependency order from web_game folder -->
+<script src="web_game/js/core/state.js?v=2"></script>
+<script src="web_game/js/data/relics_potions.js?v=2"></script>
+<script src="web_game/js/data/cards.js?v=2"></script>
+<script src="web_game/js/data/enemies.js?v=2"></script>
+<script src="web_game/js/core/combat.js?v=2"></script>
+<script src="web_game/js/core/map.js?v=2"></script>
+<script src="web_game/js/core/shop.js?v=2"></script>
+<script src="web_game/js/data/card_images.js?v=1"></script>
+<script src="web_game/js/ui/renderer.js?v=6"></script>
+<script src="web_game/js/main.js?v=3"></script>
+
+</body>
+</html>
