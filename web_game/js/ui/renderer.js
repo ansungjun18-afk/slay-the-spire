@@ -27,8 +27,15 @@ function updateRelicsUI() {
     const def = DB_RELICS[id] || { name: id, desc: '' };
     const el = document.createElement('div');
     el.className = 'relic-item';
-    // Show a short label (first letter(s)) as icon fallback
-    el.innerText = def.name ? def.name[0] : id[0];
+    if(def.img) {
+      const img = document.createElement('img');
+      img.src = def.img;
+      img.alt = def.name;
+      img.className = 'relic-img';
+      el.appendChild(img);
+    } else {
+      el.innerText = def.name ? def.name[0] : id[0];
+    }
     if(def.desc) el.setAttribute('data-desc', def.name + ': ' + def.desc);
     else el.setAttribute('data-desc', def.name);
     c.appendChild(el);
